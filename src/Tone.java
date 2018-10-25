@@ -83,6 +83,13 @@ public class Tone {
         }
     }
 
+    /**
+     * readFile() take in a filename, reads said file, and stores the contained information in an
+     * 	ArrayList which it returns, for use elsewhere.
+     * @param filename, of the file the user would like to read in
+     * @return input, as an ArrayList containing the lines of the file
+     * @throws FileNotFoundException
+     */
     private ArrayList readFile(String filename) throws FileNotFoundException {
     	ArrayList<String> input = new ArrayList<String>();
     	
@@ -104,6 +111,11 @@ public class Tone {
     	return input;
     }
     
+    /**
+     * validateSongInput checks to make sure the given song will play correctly.
+     * @param input, the ArrayList containing the song to play.
+     * @return valid, boolean saying whether the song is valid to play
+     */
     private boolean validateSongInput(ArrayList<String> input) {
     	boolean valid = true;
     	
@@ -115,7 +127,7 @@ public class Tone {
     		String[] line = s.split("\\s+");
     		if(line.length != 2) {
     			valid = false;
-    			System.err.println(s + " is not a valid line in the file.");
+    			System.err.println(s + " is not a valid line. Check file");
     		}
     		else {
     			Note tempNote = null;
@@ -127,7 +139,7 @@ public class Tone {
     				notes.add(tempNote);
     			}catch (IllegalArgumentException e){
     				valid = false;
-    				System.err.println(note + "is not a valid not in file.");
+    				System.err.println(note + "is not a valid note. Check file");
     			}
     			
     			String length = line[1];
@@ -148,6 +160,11 @@ public class Tone {
     	return valid;
     }
     
+    /**
+     * Converts a given value to its corresponding note length
+     * @param length, value given
+     * @return NoteLength, corresponding note length or null
+     */
     private NoteLength numberToNote(String length) {
     	switch (length) {
     		case "1":
