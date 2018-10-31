@@ -17,14 +17,17 @@ public class Tone {
 
     
     public static void main(String[] args) throws Exception {
-        final AudioFormat af =
-            new AudioFormat(Note.SAMPLE_RATE, 8, 1, true, false);
-        Tone t = new Tone(af);
-        t.playSong(song);
+    	ArrayList songToPlay = readFile("MaryHadALittleLamb.txt");
+    	if(validateSongInput(songToPlay)) {
+            final AudioFormat af =
+                new AudioFormat(Note.SAMPLE_RATE, 8, 1, true, false);
+            Tone t = new Tone(af);
+            t.playSong(song);
+    	}
     }
     
-    private List<BellNote> bellNotes;
-    private List<Note> notes;
+    private static List<BellNote> bellNotes;
+    private static List<Note> notes;
 	
     // Mary had a little lamb
 	private static final List<BellNote> song = Stream.of(
@@ -90,7 +93,7 @@ public class Tone {
      * @return input, as an ArrayList containing the lines of the file
      * @throws FileNotFoundException
      */
-    private ArrayList readFile(String filename) throws FileNotFoundException {
+    private static ArrayList readFile(String filename) throws FileNotFoundException {
     	ArrayList<String> input = new ArrayList<String>();
     	
     	File song = new File(filename);
@@ -116,7 +119,7 @@ public class Tone {
      * @param input, the ArrayList containing the song to play.
      * @return valid, boolean saying whether the song is valid to play
      */
-    private boolean validateSongInput(ArrayList<String> input) {
+    private static boolean validateSongInput(ArrayList<String> input) {
     	boolean valid = true;
     	
     	if(input.size() == 0) {
@@ -165,7 +168,7 @@ public class Tone {
      * @param length, value given
      * @return NoteLength, corresponding note length or null
      */
-    private NoteLength numberToNote(String length) {
+    private static NoteLength numberToNote(String length) {
     	switch (length) {
     		case "1":
     			return NoteLength.WHOLE;
