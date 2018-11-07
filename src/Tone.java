@@ -11,7 +11,7 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
-public class Tone {
+public class Tone extends Thread{
 	
 	private static List<BellNote> bellNotes = new ArrayList<BellNote>();
     private static List<Note> notes = new ArrayList<Note>();
@@ -20,6 +20,10 @@ public class Tone {
  
 	private final AudioFormat af;
 	private static final List<BellNote> song = bellNotes;
+	
+	private Thread t;
+	private Tone mutex;
+	private int turn;
     
     @SuppressWarnings({ "rawtypes", "unchecked" })
 	public static void main(String[] args) throws Exception {
@@ -157,6 +161,19 @@ public class Tone {
         line.write(Note.REST.sample(), 0, 50);
     }
 
+	public synchronized void acquire(int x) {
+		while (x!=turn) {
+			try {
+				wait();
+			} catch (InterruptedException ignore) {}
+		}
+	}
+
+	public synchronized void release() {
+		turn++;
+		notifyAll();	
+	}
+	
 }
 
 class BellNote {
