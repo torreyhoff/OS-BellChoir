@@ -5,8 +5,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
@@ -14,9 +12,17 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
 public class Tone {
-
+	
+	private static List<BellNote> bellNotes = new ArrayList<BellNote>();
+    private static List<Note> notes = new ArrayList<Note>();
+	private static String songName = "";
+	private static int noteNum = 0;
+ 
+	private final AudioFormat af;
+	private static final List<BellNote> song = bellNotes;
     
-    public static void main(String[] args) throws Exception {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	public static void main(String[] args) throws Exception {
     	ArrayList songToPlay = readFile("MaryHadALittleLamb.txt");
     	if(validateSongInput(songToPlay)) {
             final AudioFormat af =
@@ -25,49 +31,6 @@ public class Tone {
             t.playSong(song);
     	}
     }
-    
-    private static List<BellNote> bellNotes;
-    private static List<Note> notes;
-	
-    // Mary had a little lamb
-	private static final List<BellNote> song = Stream.of(
-            new BellNote(Note.A5, NoteLength.QUARTER),
-            new BellNote(Note.G4, NoteLength.QUARTER),
-            new BellNote(Note.F4, NoteLength.QUARTER),
-            new BellNote(Note.G4, NoteLength.QUARTER),
-
-            new BellNote(Note.A5, NoteLength.QUARTER),
-            new BellNote(Note.A5, NoteLength.QUARTER),
-            new BellNote(Note.A5, NoteLength.HALF),
-
-            new BellNote(Note.G4, NoteLength.QUARTER),
-            new BellNote(Note.G4, NoteLength.QUARTER),
-            new BellNote(Note.G4, NoteLength.HALF),
-
-            new BellNote(Note.A5, NoteLength.QUARTER),
-            new BellNote(Note.A5, NoteLength.QUARTER),
-            new BellNote(Note.A5, NoteLength.HALF),
-
-            new BellNote(Note.A5, NoteLength.QUARTER),
-            new BellNote(Note.G4, NoteLength.QUARTER),
-            new BellNote(Note.F4, NoteLength.QUARTER),
-            new BellNote(Note.G4, NoteLength.QUARTER),
-
-            new BellNote(Note.A5, NoteLength.QUARTER),
-            new BellNote(Note.A5, NoteLength.QUARTER),
-            new BellNote(Note.A5, NoteLength.QUARTER),
-            new BellNote(Note.A5, NoteLength.QUARTER),
-
-            new BellNote(Note.G4, NoteLength.QUARTER),
-            new BellNote(Note.G4, NoteLength.QUARTER),
-            new BellNote(Note.A5, NoteLength.QUARTER),
-            new BellNote(Note.G4, NoteLength.QUARTER),
-
-            new BellNote(Note.F4, NoteLength.WHOLE)
-        ).collect(Collectors.toList());
-
- 
-    private final AudioFormat af;
 
     Tone(AudioFormat af) {
         this.af = af;
@@ -152,6 +115,11 @@ public class Tone {
     				valid = false;
     			}
     			
+    			if(!songName.contains(note)) {
+    				songName += (" "+note+" ");
+    				noteNum++;
+    			}
+    			
     			if(valid) {
     				bellNotes.add(new BellNote(tempNote,tempLen));
     			}
@@ -176,7 +144,7 @@ public class Tone {
     			return NoteLength.HALF;
     		case "4":
     			return NoteLength.QUARTER;
-    		case "5":
+    		case "8":
     			return NoteLength.EIGHTH;
     	}
     	return null;
@@ -233,7 +201,19 @@ enum Note {
     F4S,
     G4,
     G4S,
-    A5;
+    A5,
+    A5S,
+    B5,
+    C5,
+    C5S,
+    D5,
+    D5S,
+    E5,
+    F5,
+    F5S,
+    G5,
+    G5S,
+    A6;
 
     public static final int SAMPLE_RATE = 48 * 1024; // ~48KHz
     public static final int MEASURE_LENGTH_SEC = 1;
