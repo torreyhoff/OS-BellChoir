@@ -4,63 +4,84 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
-public class Tone extends Thread{
-	
-	private static List<BellNote> bellNotes = new ArrayList<BellNote>();
-    private static List<Note> notes = new ArrayList<Note>();
-	private static String songName = "";
-	private static int noteNum = 0;
- 
-	private final AudioFormat af;
-	private static final List<BellNote> song = bellNotes;
-	
-	private Thread t;
-	private Tone mutex;
+public class Tone {
+
+	private List<BellNote> bellNotes;
+    private List<Note> notes;
+    private List<BellRinger> bellRingers;
+    private Map<Note,BellRinger> map;
 	private int turn;
-    
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-	public static void main(String[] args) throws Exception {
-    	ArrayList songToPlay = readFile("MaryHadALittleLamb.txt");
+	private boolean songEnded;
+	
+	public static void main(String[] args) throws InterruptedException {
+		System.out.println("Make Playlist\nAvailable songs visible to left\nInclude full song name and extenstion, separated by commas: ");
+		Scanner input = new Scanner(System.in);
+		String songs = input.nextLine();
+		
+		String[] songNames = songs.split(",\\s+");
+		for(String name : songNames) {
+			try {
+				new Tone(name);
+				System.out.println("Delay between songs");
+				Thread.sleep(2000);
+			} catch(FileNotFoundException e) {
+				System.err.println(e.getMessage());
+			}
+		}
+		input.close();
+    }
+
+    Tone(String filename) throws FileNotFoundException {
+    	map = new HashMap<Note, BellRinger>();
+    	bellNotes = new ArrayList<BellNote>();
+    	notes = new ArrayList<Note>();
+    	songEnded = false;
+    	turn = 0;
+    	
+    	ArrayList<String> songToPlay = readFile(filename);
     	if(validateSongInput(songToPlay)) {
-            final AudioFormat af =
-                new AudioFormat(Note.SAMPLE_RATE, 8, 1, true, false);
-            Tone t = new Tone(af);
-            t.playSong(song);
+    		playSong();
     	}
+    	
+    }
+    
+    private void playSong() {
+    	AudioFormat af = new AudioFormat(Note.SAMPLE_RATE, 8, 1, true, false);
+		try (final SourceDataLine line = AudioSystem.getSourceDataLine(af)) {
+			line.open();
+			line.start();
+			
+			getRingers(line);
+			startRinging();
+			while (!songEnded) { 
+				synchronized (this) {
+					try {
+						wait();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			removeRingers();
+			line.drain();
+		}
+		catch (LineUnavailableException e) {
+			System.err.println("Unable to play song. Check audio");
+		}
     }
 
-    Tone(AudioFormat af) {
-        this.af = af;
-    }
-
-    void playSong(List<BellNote> song) throws LineUnavailableException {
-        try (final SourceDataLine line = AudioSystem.getSourceDataLine(af)) {
-            line.open();
-            line.start();
-
-            for (BellNote bn: song) {
-                playNote(line, bn);
-                System.out.println(bn.note+" "+bn.length);
-            }
-            line.drain();
-        }
-    }
-
-    /**
-     * readFile() take in a filename, reads said file, and stores the contained information in an
-     * 	ArrayList which it returns, for use elsewhere.
-     * @param filename, of the file the user would like to read in
-     * @return input, as an ArrayList containing the lines of the file
-     * @throws FileNotFoundException
-     */
-    private static ArrayList readFile(String filename) throws FileNotFoundException {
+    private ArrayList<String> readFile(String filename) throws FileNotFoundException {
+    	System.out.println("Reading file..."); // indicating file read
     	ArrayList<String> input = new ArrayList<String>();
     	
     	File song = new File(filename);
@@ -70,6 +91,8 @@ public class Tone extends Thread{
     	try (FileReader fileReader = new FileReader(song);
     		BufferedReader in = new BufferedReader(fileReader)) {
     		String nextLine = in.readLine();
+    		System.out.println("Playng " + nextLine);// display Song name
+    		nextLine = in.readLine();
     		while(nextLine != null) {
     			input.add(nextLine);
     			nextLine = in.readLine();
@@ -80,13 +103,9 @@ public class Tone extends Thread{
     	
     	return input;
     }
-    
-    /**
-     * validateSongInput checks to make sure the given song will play correctly.
-     * @param input, the ArrayList containing the song to play.
-     * @return valid, boolean saying whether the song is valid to play
-     */
-    private static boolean validateSongInput(ArrayList<String> input) {
+
+    private boolean validateSongInput(ArrayList<String> input) {
+    	System.out.println("Validating notes..."); // indicating validation
     	boolean valid = true;
     	
     	if(input.size() == 0) {
@@ -119,11 +138,6 @@ public class Tone extends Thread{
     				valid = false;
     			}
     			
-    			if(!songName.contains(note)) {
-    				songName += (" "+note+" ");
-    				noteNum++;
-    			}
-    			
     			if(valid) {
     				bellNotes.add(new BellNote(tempNote,tempLen));
     			}
@@ -135,11 +149,6 @@ public class Tone extends Thread{
     	return valid;
     }
     
-    /**
-     * Converts a given value to its corresponding note length
-     * @param length, value given
-     * @return NoteLength, corresponding note length or null
-     */
     private static NoteLength numberToNote(String length) {
     	switch (length) {
     		case "1":
@@ -154,13 +163,36 @@ public class Tone extends Thread{
     	return null;
     }
     
-    private void playNote(SourceDataLine line, BellNote bn) {
-        final int ms = Math.min(bn.length.timeMs(), Note.MEASURE_LENGTH_SEC * 1000);
-        final int actualLength = Note.SAMPLE_RATE * ms / 1000;
-        line.write(bn.note.sample(), 0, actualLength);
-        line.write(Note.REST.sample(), 0, 50);
+    private void getRingers(SourceDataLine line) {
+    	System.out.println("Getting BellRingers (aka making Threads)");
+    	ArrayList<BellRinger> ringers = new ArrayList<BellRinger>();
+    	
+    	for(int i = 0; i < bellNotes.size(); i++) {
+    		int turn = i;
+			BellRinger br = map.get(notes.get(i));
+			if (br==null) {
+				br = new BellRinger(this,line);
+				ringers.add(br);
+				map.put(notes.get(i), br);
+			}
+			br.addNoteToPlay(bellNotes.get(i),turn);
+    	}
+    	bellRingers = ringers;
     }
-
+    
+    private void removeRingers() {
+    	System.out.println("Joining Threads...");
+    	for(BellRinger br : bellRingers) {
+    		br.musicIsOver();
+    	}
+    }
+    
+    private void startRinging() {
+    	for(BellRinger br : bellRingers) {
+    		br.startRinging();
+    	}
+    }
+    
 	public synchronized void acquire(int x) {
 		while (x!=turn) {
 			try {
@@ -171,6 +203,9 @@ public class Tone extends Thread{
 
 	public synchronized void release() {
 		turn++;
+		if (turn==bellNotes.size()) {
+			songEnded = true;
+		}
 		notifyAll();	
 	}
 	
