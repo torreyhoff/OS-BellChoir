@@ -24,6 +24,7 @@ public class Tone {
 	private boolean songEnded;
 	
 	public static void main(String[] args) throws InterruptedException {
+		//User can make playlist
 		System.out.println("Make Playlist\nAvailable songs visible to left\nInclude full song name and extenstion, separated by commas: ");
 		Scanner input = new Scanner(System.in);
 		String songs = input.nextLine();
@@ -149,20 +150,6 @@ public class Tone {
     	return valid;
     }
     
-    private static NoteLength numberToNote(String length) {
-    	switch (length) {
-    		case "1":
-    			return NoteLength.WHOLE;
-    		case "2":
-    			return NoteLength.HALF;
-    		case "4":
-    			return NoteLength.QUARTER;
-    		case "8":
-    			return NoteLength.EIGHTH;
-    	}
-    	return null;
-    }
-    
     private void getRingers(SourceDataLine line) {
     	System.out.println("Getting BellRingers (aka making Threads)");
     	ArrayList<BellRinger> ringers = new ArrayList<BellRinger>();
@@ -209,6 +196,28 @@ public class Tone {
 		notifyAll();	
 	}
 	
+    private static NoteLength numberToNote(String length) {
+    	switch (length) {
+    		case "1":
+    			return NoteLength.WHOLE;
+    		case "3":
+    			return NoteLength.DOTTEDHALF;
+    		case "2":
+    			return NoteLength.HALF;
+    		case "5":
+    			return NoteLength.DOTTEDQUARTER;
+    		case "4":
+    			return NoteLength.QUARTER;
+    		case "6":
+    			return NoteLength.TRIPLET;
+    		case "8":
+    			return NoteLength.EIGHTH;
+    		case "16":
+    			return NoteLength.SIXTEENTH;
+    	}
+    	return null;
+    }
+	
 }
 
 class BellNote {
@@ -223,9 +232,13 @@ class BellNote {
 
 enum NoteLength {
     WHOLE(1.0f),
+    DOTTEDHALF(0.75f),
     HALF(0.5f),
+    DOTTEDQUARTER(0.375f),
     QUARTER(0.25f),
-    EIGHTH(0.125f);
+    TRIPLET(0.1667f),
+    EIGHTH(0.125f),
+	SIXTEENTH(0.0625f);
 
     private final int timeMs;
 
@@ -268,7 +281,7 @@ enum Note {
     A6;
 
     public static final int SAMPLE_RATE = 48 * 1024; // ~48KHz
-    public static final int MEASURE_LENGTH_SEC = 1;
+    public static final int MEASURE_LENGTH_SEC = 2;
 
     // Circumference of a circle divided by # of samples
     private static final double step_alpha = (2.0 * Math.PI) / SAMPLE_RATE;
